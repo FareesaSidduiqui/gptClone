@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
 import userRoutes from "./routes/userRoutes.js";
-import connectingDB from "./config/db.js";
+import {connectDB} from "./config/db.js";
 import chatRouter from "./routes/chatRoutes.js";
 import msgRouter from "./routes/messageRoutes.js";
 import creditRouter from "./routes/creditRoutes.js";
@@ -14,7 +14,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Connect DB
-connectingDB()
+connectDB()
 
 // strpie webhooks
 app.post('/api/stripe',express.raw({type: 'application/json'}),stripeWebhooks)
