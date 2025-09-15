@@ -22,24 +22,32 @@ export const stripeWebhooks = async (req, res) => {
       case 'checkout.session.completed': {
         const session = event.data.object
         const { transactionId, appId } = session.metadata
+        console.log("Processing checkout.session.completed for transactionId:", transactionId, "appId:", appId)
 
         if (appId === 'quickgpt') {
           const transaction = await Transaction.findOne({
             _id: transactionId,
             isPaid: false,
           })
-
+          console.log("Transaction found:", !!transaction)
           if (transaction) {
+            console.log("Transaction details:", { userId: transaction.userId, credits: transaction.credits })
             // add credits to user
-            await User.updateOne(
+            const userUpdateResult = await User.updateOne(
               { _id: transaction.userId },
               { $inc: { credits: transaction.credits } }
             )
+            console.log("User update result:", userUpdateResult)
 
             // mark transaction as paid
             transaction.isPaid = true
-            await transaction.save()
+            const saveResult = await transaction.save()
+            console.log("Transaction save result:", saveResult)
+          } else {
+            console.log("Transaction not found or already paid for transactionId:", transactionId)
           }
+        } else {
+          console.log("AppId mismatch:", appId)
         }
         break
       }
@@ -47,6 +55,9 @@ export const stripeWebhooks = async (req, res) => {
       default:
         console.log('Unhandled event type:', event.type)
     }
+    console.log("Webhook event received:", event.type)
+console.log("Session metadata:", event.data.object.metadata)
+
 
     res.json({ received: true })
   } catch (error) {
