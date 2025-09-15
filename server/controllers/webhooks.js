@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.config();
 import Stripe from 'stripe'
 import Transaction from '../models/transaction.js'
 import User from '../models/User.js'

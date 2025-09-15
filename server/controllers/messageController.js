@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.config();
 import Chat from "../models/Chat.js";
 import axios from "axios";
 import User from "../models/User.js";
@@ -98,7 +100,7 @@ export const imageMsgController = async (req, res) => {
 
     const encodedPrompt = encodeURIComponent(prompt)
 
-    const generatedImageUrl = `${process.env.ImageKit_EndPoint_Url}/
+    const generatedImageUrl = `${process.env.IMAGEKIT_ENDPOINT_URL}/
     ik-genimg-prompt-${encodedPrompt}/quickgpt/${Date.now()}.png?tr=w-800,
     h-800`
 
