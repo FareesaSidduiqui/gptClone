@@ -67,8 +67,8 @@ export const purchasePlan = async (req,res) =>{
                     quantity : 1,
                 },
              ],
-             mode : 'payment',
-             success_url : `${origin}/loading`,
+             mode : 'payment', 
+             success_url: `${origin}/loading?session_id={CHECKOUT_SESSION_ID}`,
              cancel_url : `${origin}`,
              metadata : {transactionId : transaction._id.toString(),appId : 'quickgpt'},
              expires_at : Math.floor(Date.now()/1000 )+30 * 60, // expires in 30 min
