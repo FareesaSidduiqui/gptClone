@@ -14,54 +14,66 @@ export const stripeWebhooks = async (req, res) => {
       process.env.Stripe_Webhook_Signing_key
     )
   } catch (error) {
+    console.error("Webhook signature verification failed:", error.message)
     return res.status(400).send(`Webhook Error: ${error.message}`)
   }
 
   try {
     switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object
-        const { transactionId, appId } = session.metadata
-        console.log("Processing checkout.session.completed for transactionId:", transactionId, "appId:", appId)
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data.object
+        console.log("PaymentIntent succeeded:", paymentIntent.id)
+
+        // get the Checkout Session linked to this paymentIntent
+        const sessionList = await stripe.checkout.sessions.list({
+          payment_intent: paymentIntent.id,
+        })
+
+        const session = sessionList.data[0]
+        if (!session) {
+          console.log("No session found for paymentIntent:", paymentIntent.id)
+          break
+        }
+
+        const { transactionId, appId } = session.metadata || {}
+        console.log("Metadata:", { transactionId, appId })
 
         if (appId === 'quickgpt') {
           const transaction = await Transaction.findOne({
             _id: transactionId,
             isPaid: false,
           })
-          console.log("Transaction found:", !!transaction)
-          if (transaction) {
-            console.log("Transaction details:", { userId: transaction.userId, credits: transaction.credits })
-            // add credits to user
-            const userUpdateResult = await User.updateOne(
-              { _id: transaction.userId },
-              { $inc: { credits: transaction.credits } }
-            )
-            console.log("User update result:", userUpdateResult)
 
-            // mark transaction as paid
-            transaction.isPaid = true
-            const saveResult = await transaction.save()
-            console.log("Transaction save result:", saveResult)
-          } else {
-            console.log("Transaction not found or already paid for transactionId:", transactionId)
+          if (!transaction) {
+            console.log("Transaction not found or already paid:", transactionId)
+            break
           }
+
+          // update user credits
+          await User.updateOne(
+            { _id: transaction.userId },
+            { $inc: { credits: transaction.credits } }
+          )
+          console.log("Credits added to user:", transaction.userId)
+
+          // mark transaction as paid
+          transaction.isPaid = true
+          await transaction.save()
+          console.log("Transaction marked as paid:", transactionId)
         } else {
           console.log("AppId mismatch:", appId)
         }
+
         break
       }
 
       default:
-        console.log('Unhandled event type:', event.type)
+        console.log("Unhandled event type:", event.type)
     }
-    console.log("Webhook event received:", event.type)
-console.log("Session metadata:", event.data.object.metadata)
-
 
     res.json({ received: true })
   } catch (error) {
-    console.error('Webhook error:', error)
+    console.error("Webhook error:", error)
     res.status(500).send(`Internal server error: ${error.message}`)
   }
 }
